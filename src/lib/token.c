@@ -25,6 +25,56 @@
 #include "token.h"
 #include "utils.h"
 
+/**
+ * Maps 4-byte manufacturer identifier to manufacturer name.
+ */
+const char *TPM2_MANUFACTURER_MAP[][2] = {
+    {"INTC", "Intel"},
+    {"IFX", "Infineon"},
+    {"IBM ", "IBM"},
+};
+
+/**
+ * Expand the manufacturer identifier (4 bytes) into destination buffer.
+ * If manufacturer identifier is unknown, copy the identifier to destination.
+ * Always null-terminates the string.
+ * Source and destination buffer can overlap.
+ * @param dest
+ *  The buffer to write the expanded manufacturer string into.
+ * @param src
+ *  TPM2 manufacturer identifier. Can optionally be null-terminated.
+ *  Must be at least 4 bytes in size. Only the first 4 bytes will be processed.
+ * @param size
+ *  The size of the destination buffer.
+ * @return
+ *  CKR_OK on success, CKR_BUFFER_TOO_SMALL otherwise
+ */
+static int token_expand_manufacturer(CK_BYTE *dest, CK_BYTE *src, size_t size) {
+
+    for (unsigned int i = 0; i < ARRAY_LEN(TPM2_MANUFACTURER_MAP); i++) {
+        if (!strncmp((char*) src, TPM2_MANUFACTURER_MAP[i][0], 4)) {
+            /* match: expansion found */
+            if (strlen(TPM2_MANUFACTURER_MAP[i][1]) >= size) {
+                return CKR_BUFFER_TOO_SMALL;
+            }
+
+            strncpy((char*) dest, TPM2_MANUFACTURER_MAP[i][1], size);
+            return CKR_OK;
+        }
+    }
+
+    /* no expansion found, copy exactly 4 bytes (and add '\0') */
+    if (size < 5) {
+        return CKR_BUFFER_TOO_SMALL;
+    }
+
+    memmove(dest, src, 4);
+
+    dest[4] = '\0';
+
+    return CKR_OK;
+}
+
 void token_free_list(token *t, size_t len) {
 
     size_t i;
@@ -70,26 +120,40 @@ void token_free(token *t) {
 
 CK_RV token_get_info (token *t, CK_TOKEN_INFO *info) {
 
-    check_pointer(info);
-
-    const CK_BYTE token_sn[]   = TPM2_TOKEN_SERIAL_NUMBER;
-    const CK_BYTE token_manuf[]  = TPM2_TOKEN_MANUFACTURER;
-    const CK_BYTE token_model[]  = TPM2_TOKEN_MODEL;
-    const CK_BYTE token_hwver[2] = TPM2_SLOT_HW_VERSION;
-    const CK_BYTE token_fwver[2] = TPM2_SLOT_FW_VERSION;
-    time_t rawtime;
-    struct tm * tminfo;
-
-    memset(info, 0, sizeof(*info));
-
     /*
-     * TODO Set these to better values
-     * and get valid VERSION info. Likely
+     * TODO get valid VERSION info. Likely
      * need to make version match what is in general.c
      * for the CK_INFO structure, not sure.
      *
      * Below is ALL the fields grouped.
      */
+    CK_BYTE token_hwver[2] = { 0, 0 };
+    CK_BYTE token_fwver[2] = { 0, 0 };
+    int rval;
+    time_t rawtime;
+    struct tm * tminfo;
+
+    check_pointer(t);
+    check_pointer(info);
+
+    memset(info, 0, sizeof(*info));
+
+    // Identification
+    str_padded_copy(info->label, t->label, sizeof(info->label));
+    str_padded_copy(info->serialNumber, TPM2_TOKEN_SERIAL_NUMBER, sizeof(info->serialNumber));
+
+    rval = tpm_get_vendor_string(t->tctx, (char*) info->model, sizeof(info->model));
+    if (rval != CKR_OK) {
+        return CKR_GENERAL_ERROR;
+    }
+    str_pad(info->model, sizeof(info->model));
+
+    rval = tpm_get_manufacturer(t->tctx, (char*) info->manufacturerID, sizeof(info->manufacturerID));
+    if (rval != CKR_OK) {
+        return CKR_GENERAL_ERROR;
+    }
+    token_expand_manufacturer(info->manufacturerID, info->manufacturerID, sizeof(info->manufacturerID));
+    str_pad(info->manufacturerID, sizeof(info->manufacturerID));
 
     // Version info
     memcpy(&info->firmwareVersion, &token_fwver, sizeof(token_fwver));
@@ -102,12 +166,6 @@ CK_RV token_get_info (token *t, CK_TOKEN_INFO *info) {
     if (t->config.is_initialized) {
         info->flags |= CKF_TOKEN_INITIALIZED;
     }
-
-    // Identification
-    str_padded_copy(info->label, t->label, sizeof(info->label));
-    str_padded_copy(info->manufacturerID, token_manuf, sizeof(info->manufacturerID));
-    str_padded_copy(info->model, token_model, sizeof(info->model));
-    str_padded_copy(info->serialNumber, token_sn, sizeof(info->serialNumber));
 
     // Memory: TODO not sure what memory values should go here, the platform?
     info->ulFreePrivateMemory = ~0;
@@ -125,6 +183,10 @@ CK_RV token_get_info (token *t, CK_TOKEN_INFO *info) {
     session_table_get_cnt(t->s_table, &info->ulSessionCount, &info->ulRwSessionCount, NULL);
 
     // Time
+    /* TODO if possible, the TPMs internal time shall be returned. From the spec:
+     * "The value of this field only makes sense for tokens equipped with a clock,
+     * as indicated in the token information flags."
+     */
     time (&rawtime);
     tminfo = gmtime(&rawtime);
     strftime ((char *)info->utcTime, sizeof(info->utcTime), "%Y%m%d%H%M%S", tminfo);

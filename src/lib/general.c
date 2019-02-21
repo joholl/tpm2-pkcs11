@@ -25,6 +25,7 @@
  * via get capability.
  */
 #define LIBRARY_DESCRIPTION "TPM2.0 Cryptoki"
+#define LIBRARY_MANUFACTURER "Intel"
 
 #define CRYPTOKI_VERSION { \
            .major = CRYPTOKI_VERSION_MAJOR, \
@@ -35,7 +36,7 @@ CK_RV general_get_info(CK_INFO *info) {
 
     static CK_INFO _info = {
         .cryptokiVersion = CRYPTOKI_VERSION,
-        .manufacturerID = " "TPM2_TOKEN_MANUFACTURER,
+        .manufacturerID = " "LIBRARY_MANUFACTURER,
         .flags = 0,
         .libraryDescription = " "LIBRARY_DESCRIPTION,
         .libraryVersion = {

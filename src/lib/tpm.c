@@ -11,6 +11,8 @@
 #include <string.h>
 #include <stddef.h>
 
+#include <arpa/inet.h>
+
 #include <openssl/asn1.h>
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
@@ -483,6 +485,122 @@ bool files_load_bytes_from_path(const char *path, UINT8 *buf, UINT16 *size) {
 
 LOAD_TYPE(TPM2B_PUBLIC, public)
 LOAD_TYPE(TPM2B_PRIVATE, private)
+
+CK_RV tpm_get_revision(tpm_ctx *ctx, CK_BYTE *major, CK_BYTE* minor) {
+    uint32_t revision;
+    TPM2_CAP capability = TPM2_CAP_TPM_PROPERTIES;
+    UINT32 property = TPM2_PT_FIXED;
+    UINT32 propertyCount = TPM2_MAX_TPM_PROPERTIES;
+    TPMS_CAPABILITY_DATA *capabilityData;
+    TPMI_YES_NO moreData;
+
+    if (!ctx || !major || !minor) {
+        return CKR_ARGUMENTS_BAD;
+    }
+
+    TSS2_RC rval = Esys_GetCapability(ctx->esys_ctx,
+        ESYS_TR_NONE,
+        ESYS_TR_NONE,
+        ESYS_TR_NONE,
+        capability,
+        property, propertyCount, &moreData, &capabilityData);
+
+    if (rval != TSS2_RC_SUCCESS) {
+        LOGE("Esys_GetCapability: 0x%x:", rval);
+        return CKR_GENERAL_ERROR;
+    }
+
+    if (!capabilityData || capabilityData->data.tpmProperties.count < TPM2_PT_REVISION - TPM2_PT_FIXED) {
+        return CKR_GENERAL_ERROR;
+    }
+
+    revision = capabilityData->data.tpmProperties.tpmProperty[TPM2_PT_REVISION - TPM2_PT_FIXED].value;
+    *major = revision / 100;
+    *minor = revision % 100;
+
+    return CKR_OK;
+}
+
+CK_RV tpm_get_manufacturer(tpm_ctx *ctx, char *data, size_t size) {
+    uint32_t manufacturer;
+    TPM2_CAP capability = TPM2_CAP_TPM_PROPERTIES;
+    UINT32 property = TPM2_PT_FIXED;
+    UINT32 propertyCount = TPM2_MAX_TPM_PROPERTIES;
+    TPMS_CAPABILITY_DATA *capabilityData;
+    TPMI_YES_NO moreData;
+
+    if (!ctx || !data) {
+        return CKR_ARGUMENTS_BAD;
+    }
+
+    if (size < sizeof(uint32_t)) {
+        return CKR_BUFFER_TOO_SMALL;
+    }
+
+    TSS2_RC rval = Esys_GetCapability(ctx->esys_ctx,
+        ESYS_TR_NONE,
+        ESYS_TR_NONE,
+        ESYS_TR_NONE,
+        capability,
+        property, propertyCount, &moreData, &capabilityData);
+
+    if (rval != TSS2_RC_SUCCESS) {
+        LOGE("Esys_GetCapability: 0x%x:", rval);
+        return CKR_GENERAL_ERROR;
+    }
+
+    if (!capabilityData || capabilityData->data.tpmProperties.count < TPM2_PT_MANUFACTURER - TPM2_PT_FIXED) {
+        return CKR_GENERAL_ERROR;
+    }
+
+    manufacturer = ntohl(capabilityData->data.tpmProperties.tpmProperty[TPM2_PT_MANUFACTURER - TPM2_PT_FIXED].value);
+
+    memcpy(data, (char*) &manufacturer, sizeof(manufacturer));
+
+    return CKR_OK;
+}
+
+CK_RV tpm_get_vendor_string(tpm_ctx *ctx, char *data, size_t size) {
+    uint32_t vendor[4];
+    TPM2_CAP capability = TPM2_CAP_TPM_PROPERTIES;
+    UINT32 property = TPM2_PT_FIXED;
+    UINT32 propertyCount = TPM2_MAX_TPM_PROPERTIES;
+    TPMS_CAPABILITY_DATA *capabilityData;
+    TPMI_YES_NO moreData;
+
+    if (!ctx || !data) {
+        return CKR_ARGUMENTS_BAD;
+    }
+
+    if (size < sizeof(vendor)) {
+        return CKR_BUFFER_TOO_SMALL;
+    }
+
+    TSS2_RC rval = Esys_GetCapability(ctx->esys_ctx,
+        ESYS_TR_NONE,
+        ESYS_TR_NONE,
+        ESYS_TR_NONE,
+        capability,
+        property, propertyCount, &moreData, &capabilityData);
+
+    if (rval != TSS2_RC_SUCCESS) {
+        LOGE("Esys_GetCapability: 0x%x:", rval);
+        return CKR_GENERAL_ERROR;
+    }
+
+    if (!capabilityData || capabilityData->data.tpmProperties.count < TPM2_PT_VENDOR_STRING_4 - TPM2_PT_FIXED) {
+        return CKR_GENERAL_ERROR;
+    }
+
+    vendor[0] = ntohl(capabilityData->data.tpmProperties.tpmProperty[TPM2_PT_VENDOR_STRING_1 - TPM2_PT_FIXED].value);
+    vendor[1] = ntohl(capabilityData->data.tpmProperties.tpmProperty[TPM2_PT_VENDOR_STRING_2 - TPM2_PT_FIXED].value);
+    vendor[2] = ntohl(capabilityData->data.tpmProperties.tpmProperty[TPM2_PT_VENDOR_STRING_3 - TPM2_PT_FIXED].value);
+    vendor[3] = ntohl(capabilityData->data.tpmProperties.tpmProperty[TPM2_PT_VENDOR_STRING_4 - TPM2_PT_FIXED].value);
+
+    memcpy(data, (char*) &vendor, sizeof(vendor));
+
+    return CKR_OK;
+}
 
 bool tpm_getrandom(tpm_ctx *ctx, BYTE *data, size_t size) {
 

@@ -32,6 +32,11 @@ static inline int min(size_t a, size_t b) {
     return a < b ? a : b;
 }
 
+static inline void str_pad(unsigned char * buf, size_t buf_len) {
+    size_t str_len = strlen((char *)buf);
+    memset(buf + str_len, ' ', buf_len - str_len);
+}
+
 static inline void str_padded_copy(unsigned char * dst, const unsigned char * src, size_t dst_len) {
     memset(dst, ' ', dst_len);
     memcpy(dst, src, min(strlen((char *)(src)), dst_len));

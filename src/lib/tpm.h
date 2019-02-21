@@ -35,6 +35,47 @@ void tpm_ctx_free(tpm_ctx *ctx);
 CK_RV tpm_ctx_new(tpm_ctx **tctx);
 
 /**
+ * Reads the TPM spec revision from the TPM
+ * @param ctx
+ *  The tpm api context.
+ * @param major
+ *  Major version number
+ * @param minor
+ *  Minor version number
+ * @return
+ *  CKR_OK on success, CKR_ARGUMENTS_BAD or CKR_GENERAL_ERROR otherwise
+ */
+CK_RV tpm_get_revision(tpm_ctx *ctx, unsigned char *major, unsigned char* minor);
+
+/**
+ * Reads the 4-byte manufacturer identifier from the TPM. Writes exactly 4 bytes to the buffer.
+ * Does not null-terminate these bytes.
+ * @param ctx
+ *  The tpm api context.
+ * @param data
+ *  The buffer to write the manufacturer identifier into.
+ * @param size
+ *  The size of the buffer.
+ * @return
+ *  CKR_OK on success, CKR_ARGUMENTS_BAD, CKR_BUFFER_TOO_SMALL, or CKR_GENERAL_ERROR otherwise
+ */
+CK_RV tpm_get_manufacturer(tpm_ctx *ctx, char *data, size_t size);
+
+/**
+ * Reads the vendor string from the TPM. Writes exactly 16 bytes to the buffer.
+ * Does not null-terminate these bytes.
+ * @param ctx
+ *  The tpm api context.
+ * @param data
+ *  The buffer to write the vendor string into.
+ * @param size
+ *  The size of the buffer.
+ * @return
+ *  CKR_OK on success, CKR_ARGUMENTS_BAD, CKR_BUFFER_TOO_SMALL, or CKR_GENERAL_ERROR otherwise
+ */
+CK_RV tpm_get_vendor_string(tpm_ctx *ctx, char *data, size_t size);
+
+/**
  * Generates random bytes from the TPM
  * @param ctx
  *  The tpm api context.
