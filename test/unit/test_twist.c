@@ -25,7 +25,7 @@ void test_twist_new(void **state) {
 
 	char *expected = "Hello World";
 	twist actual = twist_new(expected);
-	assert_non_null(NULL);
+	assert_non_null(actual);
 
 	assert_string_equal(expected, actual);
 	assert_int_equal(strlen(expected), twist_len(actual));
