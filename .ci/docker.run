@@ -80,7 +80,7 @@ if [[ "$CC" == gcc* ]]; then
     echo JOHO scan-build configure
     scan-build ../configure --enable-unit --enable-integration --enable-debug=yes $config_flags --enable-code-coverage
     echo JOHO scan-build make
-    scan-build --status-bugs make -j$(nproc)
+    scan-build --status-bugs make -j$(nproc) V=1
 
     # scan-build causes test_tpm2_session to fail, so
     # rebuild after running scan-build.
