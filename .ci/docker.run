@@ -89,7 +89,8 @@ fi
 echo JOHO final configure
 ../configure --enable-unit --enable-integration --enable-esapi-session-manage-flags $config_flags
 echo JOHO final make check
-make -j$(nproc) check V=1
+#make -j$(nproc) check V=1
+make -j$(nproc) check-code-coverage V=1
 popd
 ls -lahR
 
