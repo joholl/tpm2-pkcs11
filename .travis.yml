@@ -15,6 +15,7 @@ after_failure:
   - cat build/test-suite.log
 after_success:
   - |
+    cd build
     if [ "$CC" == "gcc" ] && [ "$PYTHON_INTERPRETER" == "python3" ]; then
         bash <(curl -s https://codecov.io/bash)
     fi
