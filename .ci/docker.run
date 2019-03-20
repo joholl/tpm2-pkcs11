@@ -54,6 +54,7 @@ else #GCC
 fi
 
 # Bootstrap the project
+echo JOHO bootstrapping...
 ./bootstrap
 
 # clang has asan enabled with options exported that fail
@@ -61,8 +62,11 @@ fi
 # Do a make distcheck in the root, clear it and than
 # cd to the variant directory.
 if [ "$CC" == "gcc" ]; then
+    echo JOHO configure for distcheck
     ./configure --enable-esapi-session-manage-flags
+    echo JOHO distcheck
     make distcheck
+    echo JOHO distclean
     make distclean
 fi
 
@@ -73,14 +77,18 @@ pushd ./build
 # Run scan-build for gcc only.
 # Scan-build does not work with clang because of asan linking errors.
 if [[ "$CC" == gcc* ]]; then
+    echo JOHO scan-build configure
     scan-build ../configure --enable-unit --enable-integration --enable-debug=yes $config_flags
+    echo JOHO scan-build make
     scan-build --status-bugs make -j$(nproc)
 
     # scan-build causes test_tpm2_session to fail, so
     # rebuild after running scan-build.
 fi
 
+echo JOHO final configure
 ../configure --enable-unit --enable-integration --enable-esapi-session-manage-flags $config_flags
+echo JOHO final make check
 make -j$(nproc) check V=1
 popd
 ls -lahR
