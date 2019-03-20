@@ -93,5 +93,7 @@ echo JOHO final make check
 make -j$(nproc) check-code-coverage V=1
 popd
 ls -lahR
+gcov --version
+gcc --version
 
 exit 0
