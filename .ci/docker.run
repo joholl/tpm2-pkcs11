@@ -78,7 +78,7 @@ pushd ./build
 # Scan-build does not work with clang because of asan linking errors.
 if [[ "$CC" == gcc* ]]; then
     echo JOHO scan-build configure
-    scan-build ../configure --enable-unit --enable-integration --enable-debug=yes $config_flags
+    scan-build ../configure --enable-unit --enable-integration --enable-debug=yes $config_flags --enable-code-coverage
     echo JOHO scan-build make
     scan-build --status-bugs make -j$(nproc)
 
