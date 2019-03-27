@@ -140,7 +140,7 @@ CK_RV token_get_info (token *t, CK_TOKEN_INFO *info) {
 
     // Identification
     str_padded_copy(info->label, t->label, sizeof(info->label));
-    str_padded_copy(info->serialNumber, TPM2_TOKEN_SERIAL_NUMBER, sizeof(info->serialNumber));
+    str_padded_copy(info->serialNumber, (unsigned char*) TPM2_TOKEN_SERIAL_NUMBER, sizeof(info->serialNumber));
 
     rval = tpm_get_vendor_string(t->tctx, (char*) info->model, sizeof(info->model));
     if (rval != CKR_OK) {

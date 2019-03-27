@@ -935,8 +935,8 @@ CK_RV db_get_tokens(token **t, size_t *len) {
                 t->pid = sqlite3_column_int(stmt, i);
 
             } else if (!strcmp(name, "label")) {
-                snprintf((char *)t->label, sizeof(t->label), "%s",
-                        sqlite3_column_text(stmt, i));
+                str_padded_copy(t->label, sqlite3_column_text(stmt, i),
+                        sizeof(t->label));
 
             } else if (!strcmp(name, "userpobjauthkeysalt")) {
                 t->userpobjauthkeysalt = twist_new((char *)sqlite3_column_text(stmt, i));
