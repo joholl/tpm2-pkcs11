@@ -23,7 +23,7 @@ if [[ "$CC" == clang* ]]; then
   echo "Detecting clang, enable asan"
   export CFLAGS="-O1 -g -fsanitize=address -fno-omit-frame-pointer"
   echo "Exported CFLAGS=$CFLAGS"
-  config_flags="--disable-hardening"
+  config_flags=""
   echo "Disabled configure option hardening"
   export ASAN_ENABLED=true
   echo "Exported ASAN_ENABLED=$ASAN_ENABLED"
@@ -46,7 +46,7 @@ if [[ "$CC" == clang* ]]; then
 else #GCC
   export ENABLE_COVERAGE=true
   echo "Exported ENABLE_COVERAGE=true"
-  config_flags="--disable-hardening --enable-code-coverage"
+  config_flags="--enable-code-coverage"
 fi
 
 # Bootstrap the project
