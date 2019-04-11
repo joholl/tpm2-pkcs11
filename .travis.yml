@@ -4,7 +4,7 @@ services:
 - docker
 compiler:
 - gcc
-- clang
+- clang-6.0
 env:
   matrix:
     - PYTHON_INTERPRETER=python2
